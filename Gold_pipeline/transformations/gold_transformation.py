@@ -1,6 +1,9 @@
 import dlt
 from pyspark.sql import functions as F
 
+
+# Create a Gold table that contains only compliant metadata records.
+# These records passed the validation and compliance checks in the Silver layer.
 @dlt.table(
     name="gold_compliant_metadata",
     comment="Compliant metadata records ready for reporting"
@@ -11,12 +14,60 @@ def gold_compliant_metadata():
         .filter(F.col("is_compliant") == 1)
     )
 
+
+# Create a Gold table that contains only non-compliant metadata records.
+# These records failed one or more validation checks and require review.
 @dlt.table(
     name="gold_non_compliant_metadata",
-    comment="Non-compliant metadata records requiring remediation"
+    comment="Non-compliant metadata records requiring review"
 )
 def gold_non_compliant_metadata():
     return (
         spark.read.table("silver_metadata")
         .filter(F.col("is_compliant") == 0)
+    )
+
+
+# Create a Gold table that identifies potentially sensitive metadata fields.
+# The detection is based on common sensitive column name patterns.
+@dlt.table(
+    name="gold_sensitive_metadata",
+    comment="Metadata records containing sensitive data indicators"
+)
+def gold_sensitive_metadata():
+    return (
+        spark.read.table("silver_metadata")
+        .filter(
+            (F.lower(F.col("column_name")).contains("email")) |
+            (F.lower(F.col("column_name")).contains("phone")) |
+            (F.lower(F.col("column_name")).contains("ssn"))
+        )
+    )
+
+
+# Create a Gold table that classifies metadata records
+# into governance categories based on sensitivity indicators.
+@dlt.table(
+    name="gold_classified_metadata",
+    comment="Metadata records classified by sensitivity and governance level"
+)
+def gold_classified_metadata():
+    return (
+        spark.read.table("silver_metadata")
+        .withColumn(
+            "data_classification",
+            F.when(
+                F.lower(F.col("column_name")).contains("email") |
+                F.lower(F.col("column_name")).contains("phone") |
+                F.lower(F.col("column_name")).contains("ssn") |
+                F.lower(F.col("column_name")).contains("account") |
+                F.lower(F.col("column_name")).contains("birth"),
+                "Sensitive"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("id"),
+                "Internal"
+            )
+            .otherwise("Public")
+        )
     )
