@@ -210,3 +210,30 @@ def gold_metadata_tags():
             .otherwise("Standard")
         )
     )
+
+# Create a Gold table that calculates quality scores
+# for metadata records.
+# This table provides quality metrics for reporting,
+# dashboards, and AI governance insights.
+
+@dlt.table(
+    name="gold_quality_metrics",
+    comment="Gold table containing quality scores for metadata records"
+)
+def gold_quality_metrics():
+    return (
+        spark.read.table("silver_metadata")
+        .withColumn(
+            "quality_score",
+            (
+                F.col("flag_table_desc") +
+                F.col("flag_column_desc") +
+                F.col("flag_term_name") +
+                F.col("flag_data_steward") +
+                F.col("flag_security_classification") +
+                F.col("flag_source_system_tag") +
+                F.col("flag_pii_flag") +
+                F.col("flag_dq_pass")
+            ) * 100 / 8
+        )
+    )
