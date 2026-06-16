@@ -86,3 +86,38 @@ def gold_pii_metadata():
         spark.read.table("silver_metadata")
         .filter(F.lower(F.col("pii_flag").cast("string")) == "true")
     )
+
+# Create a Gold table that provides business definitions
+# and descriptions for metadata fields.
+# This table supports data governance, metadata search,
+# reporting, and AI-driven insights by establishing
+# a common business vocabulary across the platform.
+
+@dlt.table(
+    name="gold_business_glossary",
+    comment="Gold table containing business definitions and descriptions for metadata fields"
+)
+def gold_business_glossary():
+    return (
+        spark.read.table("silver_metadata")
+        .withColumn(
+            "business_definition",
+            F.when(
+                F.lower(F.col("column_name")).contains("email"),
+                "Customer email address"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("phone"),
+                "Customer phone number"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("ssn"),
+                "Social Security Number"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("account"),
+                "Account identifier"
+            )
+            .otherwise("General business attribute")
+        )
+    )
