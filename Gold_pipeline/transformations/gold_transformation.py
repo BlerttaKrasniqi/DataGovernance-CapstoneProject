@@ -151,3 +151,62 @@ def gold_data_ownership_registry():
             .otherwise("General Data Owner")
         )
     )
+
+# Create a Gold table that enriches metadata records
+# with additional governance information.
+# This table improves reporting, metadata search,
+# and AI-driven insights by adding useful attributes.
+
+@dlt.table(
+    name="gold_enriched_metadata",
+    comment="Gold table containing enriched metadata records for governance reporting"
+)
+def gold_enriched_metadata():
+    return (
+        spark.read.table("silver_metadata")
+        .withColumn(
+            "governance_status",
+            F.when(F.col("is_compliant") == 1, "Approved")
+            .otherwise("Needs Review")
+        )
+        .withColumn(
+            "metadata_priority",
+            F.when(
+                F.lower(F.col("pii_flag").cast("string")) == "true",
+                "High"
+            )
+            .when(
+                F.col("is_compliant") == 0,
+                "Medium"
+            )
+            .otherwise("Low")
+        )
+    )
+# Create a Gold table that assigns tags to metadata records.
+# These tags improve metadata discovery, governance,
+# reporting, and AI-driven insights.
+
+@dlt.table(
+    name="gold_metadata_tags",
+    comment="Gold table containing metadata tags for governance and search"
+)
+def gold_metadata_tags():
+    return (
+        spark.read.table("silver_metadata")
+        .withColumn(
+            "metadata_tag",
+            F.when(
+                F.lower(F.col("column_name")).contains("email"),
+                "PII"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("phone"),
+                "Sensitive"
+            )
+            .when(
+                F.col("is_compliant") == 0,
+                "Needs Review"
+            )
+            .otherwise("Standard")
+        )
+    )
