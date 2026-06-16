@@ -1,12 +1,21 @@
 import dlt
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window 
 
-BRONZE_PREFIX = ""
-DQ_INVALID_THRESHOLD = 0.10
-STRUCTURAL_STANDARD_MIN_COLUMNS = 10
+BRONZE_PREFIX = spark.conf.get("bronze_prefix", "")
+DQ_INVALID_THRESHOLD = float(spark.conf.get("dq_invalid_threshold", "0.10"))
+STRUCTURAL_STANDARD_MIN_COLUMNS = int(spark.conf.get("structural_standard_min_columns", "10"))
 
 def bronze(name):
     return f"{BRONZE_PREFIX}{name}"
+
+def dedup_latest(df, key, order_col=None):
+    if order_col and order_col in df.columns:
+        w = Window.partitionBy(key).orderBy(F.to_date(F.col(order_col)).desc_nulls_last())
+        return (df.withColumn("_rn", F.row_number().over(w))
+                  .filter(F.col("_rn") == 1)
+                  .drop("_rn"))
+    return df.dropDuplicates([key])
 
 CUSTOMERS_WARN_RULES = {
     "first_name_present": "first_name IS NOT NULL AND length(trim(first_name)) > 0",
@@ -26,7 +35,7 @@ def silver_customers():
     string_cols = [c for c, t in dtypes if t == "string"]
     exprs = [F.trim(F.col(c)).alias(c) if c in string_cols else F.col(c) for c, _ in dtypes]
     df = df.select(*exprs)
-    df = df.dropDuplicates(["customer_id"])
+    df = dedup_latest(df, "customer_id", "created_date")   # CHANGED (deterministic dedup): keep latest by created_date
     _cond = " AND ".join(f"({e})" for e in CUSTOMERS_WARN_RULES.values())
     df = df.withColumn("_dq_passed", F.coalesce(F.expr(_cond), F.lit(False)).cast("int"))
     return df.withColumn("_silver_loaded_at", F.current_timestamp())
@@ -53,10 +62,11 @@ def silver_orders():
     string_cols = [c for c, t in dtypes if t == "string"]
     exprs = [F.trim(F.col(c)).alias(c) if c in string_cols else F.col(c) for c, _ in dtypes]
     df = df.select(*exprs)
-    df = df.dropDuplicates(["order_id"])
+    df = dedup_latest(df, "order_id", "order_date")   # CHANGED (deterministic dedup): keep latest by order_date
     _cond = " AND ".join(f"({e})" for e in ORDERS_WARN_RULES.values())
     df = df.withColumn("_dq_passed", F.coalesce(F.expr(_cond), F.lit(False)).cast("int"))
     return df.withColumn("_silver_loaded_at", F.current_timestamp())
+ 
 
 PRODUCTS_WARN_RULES = {
     "product_name_present":    "product_name IS NOT NULL AND length(trim(product_name)) > 0",
@@ -74,7 +84,7 @@ def silver_products():
     string_cols = [c for c, t in dtypes if t == "string"]
     exprs = [F.trim(F.col(c)).alias(c) if c in string_cols else F.col(c) for c, _ in dtypes]
     df = df.select(*exprs)
-    df = df.dropDuplicates(["product_id"])
+    df = dedup_latest(df, "product_id", "created_date")   # CHANGED (deterministic dedup): keep latest by created_date
     _cond = " AND ".join(f"({e})" for e in PRODUCTS_WARN_RULES.values())
     df = df.withColumn("_dq_passed", F.coalesce(F.expr(_cond), F.lit(False)).cast("int"))
     return df.withColumn("_silver_loaded_at", F.current_timestamp())
@@ -98,7 +108,7 @@ def silver_payments():
     string_cols = [c for c, t in dtypes if t == "string"]
     exprs = [F.trim(F.col(c)).alias(c) if c in string_cols else F.col(c) for c, _ in dtypes]
     df = df.select(*exprs)
-    df = df.dropDuplicates(["payment_id"])
+    df = dedup_latest(df, "payment_id", "payment_date")   # CHANGED (deterministic dedup): keep latest by payment_date
     _cond = " AND ".join(f"({e})" for e in PAYMENTS_WARN_RULES.values())
     df = df.withColumn("_dq_passed", F.coalesce(F.expr(_cond), F.lit(False)).cast("int"))
     return df.withColumn("_silver_loaded_at", F.current_timestamp())
@@ -115,7 +125,7 @@ def silver_billing_transactions():
     string_cols = [c for c, t in dtypes if t == "string"]
     exprs = [F.trim(F.col(c)).alias(c) if c in string_cols else F.col(c) for c, _ in dtypes]
     df = df.select(*exprs)
-    df = df.dropDuplicates(["transaction_id"])
+    df = dedup_latest(df, "transaction_id")   # CHANGED (deterministic dedup): no date column -> plain distinct on key
     df = df.withColumn("_dq_passed", F.lit(1))
     return df.withColumn("_silver_loaded_at", F.current_timestamp())
 
@@ -174,3 +184,29 @@ def silver_metadata():
             ("flag_source_system_tag","source_system_tag"), ("flag_pii_flag","pii_flag"),
             ("flag_dq_pass","data_quality_below_threshold")]]))
     return df.withColumn("_silver_loaded_at", F.current_timestamp())
+
+@dlt.table(name="quarantine_customers",
+           comment="Customer rows that failed at least one data quality rule.",
+           table_properties={"layer": "silver"})
+def quarantine_customers():
+    return dlt.read("silver_customers").filter("_dq_passed = 0")
+ 
+@dlt.table(name="quarantine_orders",
+           comment="Order rows that failed at least one data quality rule.",
+           table_properties={"layer": "silver"})
+def quarantine_orders():
+    return dlt.read("silver_orders").filter("_dq_passed = 0")
+ 
+@dlt.table(name="quarantine_products",
+           comment="Product rows that failed at least one data quality rule.",
+           table_properties={"layer": "silver"})
+def quarantine_products():
+    return dlt.read("silver_products").filter("_dq_passed = 0")
+ 
+@dlt.table(name="quarantine_payments",
+           comment="Payment rows that failed at least one data quality rule.",
+           table_properties={"layer": "silver"})
+def quarantine_payments():
+    return dlt.read("silver_payments").filter("_dq_passed = 0")
+
+
