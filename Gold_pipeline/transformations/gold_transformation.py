@@ -2,6 +2,8 @@ import dlt
 from pyspark.sql import functions as F
 
 
+SILVER_METADATA = "workspace.default.silver_metadata"
+
 # Create a Gold table that contains only compliant metadata records.
 # These records passed the validation and compliance checks in the Silver layer.
 @dlt.table(
@@ -10,7 +12,7 @@ from pyspark.sql import functions as F
 )
 def gold_compliant_metadata():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .filter(F.col("is_compliant") == 1)
     )
 
@@ -23,7 +25,7 @@ def gold_compliant_metadata():
 )
 def gold_non_compliant_metadata():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .filter(F.col("is_compliant") == 0)
     )
 
@@ -36,7 +38,7 @@ def gold_non_compliant_metadata():
 )
 def gold_sensitive_metadata():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .filter(
             (F.lower(F.col("column_name")).contains("email")) |
             (F.lower(F.col("column_name")).contains("phone")) |
@@ -53,7 +55,7 @@ def gold_sensitive_metadata():
 )
 def gold_classified_metadata():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .withColumn(
             "data_classification",
             F.when(
@@ -83,7 +85,7 @@ def gold_classified_metadata():
 )
 def gold_pii_metadata():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .filter(F.lower(F.col("pii_flag").cast("string")) == "true")
     )
 
@@ -99,7 +101,7 @@ def gold_pii_metadata():
 )
 def gold_business_glossary():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .withColumn(
             "business_definition",
             F.when(
@@ -133,7 +135,7 @@ def gold_business_glossary():
 )
 def gold_data_ownership_registry():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .withColumn(
             "data_owner",
             F.when(
@@ -163,7 +165,7 @@ def gold_data_ownership_registry():
 )
 def gold_enriched_metadata():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .withColumn(
             "governance_status",
             F.when(F.col("is_compliant") == 1, "Approved")
@@ -192,7 +194,7 @@ def gold_enriched_metadata():
 )
 def gold_metadata_tags():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .withColumn(
             "metadata_tag",
             F.when(
@@ -222,7 +224,7 @@ def gold_metadata_tags():
 )
 def gold_quality_metrics():
     return (
-        spark.read.table("silver_metadata")
+        spark.read.table(SILVER_METADATA)
         .withColumn(
             "quality_score",
             (
