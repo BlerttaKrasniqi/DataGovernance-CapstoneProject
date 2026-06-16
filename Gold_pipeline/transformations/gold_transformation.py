@@ -71,3 +71,18 @@ def gold_classified_metadata():
             .otherwise("Public")
         )
     )
+
+# Create a Gold table that contains metadata records
+# identified as Personally Identifiable Information (PII).
+# These records are used for governance reporting,
+# dashboard metrics, and AI governance insights.
+
+@dlt.table(
+    name="gold_pii_metadata",
+    comment="Gold table containing metadata records identified as PII"
+)
+def gold_pii_metadata():
+    return (
+        spark.read.table("silver_metadata")
+        .filter(F.lower(F.col("pii_flag").cast("string")) == "true")
+    )
