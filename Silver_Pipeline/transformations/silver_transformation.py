@@ -1,10 +1,14 @@
 import dlt
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window 
+from pyspark.sql.window import Window
 
-BRONZE_PREFIX = spark.conf.get("bronze_prefix", "")
-DQ_INVALID_THRESHOLD = float(spark.conf.get("dq_invalid_threshold", "0.10"))
-STRUCTURAL_STANDARD_MIN_COLUMNS = int(spark.conf.get("structural_standard_min_columns", "10"))
+BRONZE_PREFIX = "workspace.bronze."
+
+DQ_INVALID_THRESHOLD = 0.10
+STRUCTURAL_STANDARD_MIN_COLUMNS = 10
+
+def bronze(name):
+    return f"{BRONZE_PREFIX}{name}"
 
 def bronze(name):
     return f"{BRONZE_PREFIX}{name}"
