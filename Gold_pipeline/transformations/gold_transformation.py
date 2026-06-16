@@ -121,3 +121,33 @@ def gold_business_glossary():
             .otherwise("General business attribute")
         )
     )
+
+# Create a Gold table that assigns data ownership information
+# to metadata records.
+# This table supports governance accountability by identifying
+# the responsible business owner for each metadata asset.
+
+@dlt.table(
+    name="gold_data_ownership_registry",
+    comment="Gold table containing ownership information for metadata records"
+)
+def gold_data_ownership_registry():
+    return (
+        spark.read.table("silver_metadata")
+        .withColumn(
+            "data_owner",
+            F.when(
+                F.lower(F.col("table_name")).contains("customer"),
+                "Customer Data Owner"
+            )
+            .when(
+                F.lower(F.col("table_name")).contains("payment"),
+                "Finance Data Owner"
+            )
+            .when(
+                F.lower(F.col("table_name")).contains("order"),
+                "Sales Data Owner"
+            )
+            .otherwise("General Data Owner")
+        )
+    )
