@@ -1,0 +1,36 @@
+name: Databricks CI/CD Simulation
+
+on:
+  push:
+    branches:
+      - ci-cd
+  pull_request:
+    branches:
+      - dev
+      - main
+
+jobs:
+  validate-project-structure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Silver pipeline exists
+        run: test -f "Silver_Pipeline/transformations/silver_transformation.py"
+
+      - name: Check Gold pipeline exists
+        run: test -f "Gold_pipeline/transformations/gold_transformation.py"
+
+      - name: Check Silver validation test exists
+        run: test -f "Silver_Validation_Test/test_data.ipynb"
+
+      - name: Check Gold validation test exists
+        run: test -f "Gold_Validation_Tests/gold_tests.ipynb"
+
+      - name: Check bundle config exists
+        run: test -f "databricks.yml"
+
+      - name: Validation completed
+        run: echo "CI/CD structure validation passed successfully."
