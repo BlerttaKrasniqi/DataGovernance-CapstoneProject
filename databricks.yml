@@ -1,0 +1,10 @@
+bundle:
+  name: data_governance_project
+
+targets:
+  dev:
+    default: true
+    mode: development
+
+  prod:
+    mode: production
