@@ -1,5 +1,5 @@
 bundle:
-  name: data_governance_project
+  name: DataGovernance-CapstoneProject
 
 targets:
   dev:
