@@ -29,6 +29,15 @@ jobs:
       - name: Check Gold validation test exists
         run: test -f "Gold_Validation_Tests/gold_tests.ipynb"
 
+      - name: Check dashboard notebook exists
+        run: test -f "dashboards/bi_analytics_dashboard_views.ipynb"
+
+      - name: Check jobs orchestration file exists
+        run: test -f "jobs/jobs_silver_gold_job.jsn"
+
+      - name: Validate jobs orchestration JSON
+        run: python -m json.tool "jobs/jobs_silver_gold_job.jsn"
+
       - name: Check bundle config exists
         run: test -f "databricks.yml"
 
