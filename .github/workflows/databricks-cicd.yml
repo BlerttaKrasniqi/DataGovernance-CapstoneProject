@@ -33,10 +33,10 @@ jobs:
         run: test -f "dashboards/bi_analytics_dashboard_views.ipynb"
 
       - name: Check jobs orchestration file exists
-        run: test -f "jobs/jobs_silver_gold_job.json"
+        run: test -f "jobs/jobs_silver_gold_job.jsn"
 
       - name: Validate jobs orchestration JSON
-        run: python -m json.tool "jobs/jobs_silver_gold_job.json"
+        run: python -m json.tool "jobs/jobs_silver_gold_job.jsn"
 
       - name: Check Databricks bundle config exists
         run: test -f "databricks.yml"
