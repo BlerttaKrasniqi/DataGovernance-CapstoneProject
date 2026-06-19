@@ -2,7 +2,7 @@ import dlt
 from pyspark.sql import functions as F
 
 
-SILVER_METADATA = "workspace.default.silver_metadata"
+SILVER_METADATA = "workspace.silver.silver_metadata"
 
 # Create a Gold table that contains only compliant metadata records.
 # These records passed the validation and compliance checks in the Silver layer.
@@ -239,3 +239,52 @@ def gold_quality_metrics():
             ) * 100 / 8
         )
     )
+
+# Read sample business tables from the Silver layer and expose them in Gold.
+# These curated Gold tables support dashboards, reporting, and AI governance insights.
+
+SILVER_CUSTOMERS = "workspace.silver.silver_customers"
+SILVER_ORDERS = "workspace.silver.silver_orders"
+SILVER_PRODUCTS = "workspace.silver.silver_products"
+SILVER_PAYMENTS = "workspace.silver.silver_payments"
+SILVER_BILLING_TRANSACTIONS = "workspace.silver.silver_billing_transactions"
+
+
+@dlt.table(
+    name="gold_customers",
+    comment="Curated customer data from Silver for Gold reporting"
+)
+def gold_customers():
+    return spark.read.table(SILVER_CUSTOMERS)
+
+
+@dlt.table(
+    name="gold_orders",
+    comment="Curated order data from Silver for Gold reporting"
+)
+def gold_orders():
+    return spark.read.table(SILVER_ORDERS)
+
+
+@dlt.table(
+    name="gold_products",
+    comment="Curated product data from Silver for Gold reporting"
+)
+def gold_products():
+    return spark.read.table(SILVER_PRODUCTS)
+
+
+@dlt.table(
+    name="gold_payments",
+    comment="Curated payment data from Silver for Gold reporting"
+)
+def gold_payments():
+    return spark.read.table(SILVER_PAYMENTS)
+
+
+@dlt.table(
+    name="gold_billing_transactions",
+    comment="Curated billing transaction data from Silver for Gold reporting"
+)
+def gold_billing_transactions():
+    return spark.read.table(SILVER_BILLING_TRANSACTIONS)
