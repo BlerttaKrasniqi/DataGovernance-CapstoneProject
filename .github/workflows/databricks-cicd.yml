@@ -41,9 +41,18 @@ jobs:
       - name: Check Databricks bundle config exists
         run: test -f "databricks.yml"
 
+      - name: Check schema separation notebook exists
+        run: test -f "schema_separation.ipynb"
 
       - name: Check CI/CD documentation exists
         run: test -f "docs/cicd_plan.md"
 
       - name: Validation completed
         run: echo "CI/CD structure validation passed successfully."
+
+
+
+
+
+
+        
