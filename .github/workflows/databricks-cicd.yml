@@ -33,13 +33,19 @@ jobs:
         run: test -f "dashboards/bi_analytics_dashboard_views.ipynb"
 
       - name: Check jobs orchestration file exists
-        run: test -f "jobs/jobs_silver_gold_job.jsn"
+        run: test -f "jobs/jobs_silver_gold_job.json"
 
       - name: Validate jobs orchestration JSON
-        run: python -m json.tool "jobs/jobs_silver_gold_job.jsn"
+        run: python -m json.tool "jobs/jobs_silver_gold_job.json"
 
-      - name: Check bundle config exists
+      - name: Check Databricks bundle config exists
         run: test -f "databricks.yml"
+
+      - name: Check bundle resources file exists
+        run: test -f "resources/jobs.yml"
+
+      - name: Check CI/CD documentation exists
+        run: test -f "docs/cicd_plan.md"
 
       - name: Validation completed
         run: echo "CI/CD structure validation passed successfully."
