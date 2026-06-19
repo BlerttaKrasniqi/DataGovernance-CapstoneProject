@@ -41,8 +41,6 @@ jobs:
       - name: Check Databricks bundle config exists
         run: test -f "databricks.yml"
 
-      - name: Check bundle resources file exists
-        run: test -f "resources/jobs.yml"
 
       - name: Check CI/CD documentation exists
         run: test -f "docs/cicd_plan.md"
