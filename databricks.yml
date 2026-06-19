@@ -1,0 +1,13 @@
+bundle:
+  name: DataGovernance-CapstoneProject
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    default: true
+    mode: development
+
+  prod:
+    mode: production

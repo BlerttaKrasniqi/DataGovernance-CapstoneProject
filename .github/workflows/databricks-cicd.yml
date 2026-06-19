@@ -1,0 +1,58 @@
+name: Databricks CI/CD Simulation
+
+on:
+  push:
+    branches:
+      - ci-cd
+  pull_request:
+    branches:
+      - dev
+      - main
+
+jobs:
+  validate-project-structure:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Silver pipeline exists
+        run: test -f "Silver_Pipeline/transformations/silver_transformation.py"
+
+      - name: Check Gold pipeline exists
+        run: test -f "Gold_pipeline/transformations/gold_transformation.py"
+
+      - name: Check Silver validation test exists
+        run: test -f "Silver_Validation_Test/test_data.ipynb"
+
+      - name: Check Gold validation test exists
+        run: test -f "Gold_Validation_Tests/gold_tests.ipynb"
+
+      - name: Check dashboard notebook exists
+        run: test -f "dashboards/bi_analytics_dashboard_views.ipynb"
+
+      - name: Check jobs orchestration file exists
+        run: test -f "jobs/jobs_silver_gold_job.jsn"
+
+      - name: Validate jobs orchestration JSON
+        run: python -m json.tool "jobs/jobs_silver_gold_job.jsn"
+
+      - name: Check Databricks bundle config exists
+        run: test -f "databricks.yml"
+
+      - name: Check schema separation notebook exists
+        run: test -f "schema_separation.ipynb"
+
+      - name: Check CI/CD documentation exists
+        run: test -f "docs/cicd_plan.md"
+
+      - name: Validation completed
+        run: echo "CI/CD structure validation passed successfully."
+
+
+
+
+
+
+        
