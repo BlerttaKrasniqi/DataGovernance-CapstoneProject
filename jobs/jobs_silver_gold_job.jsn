@@ -1,0 +1,61 @@
+{
+  "name": "New Job 2026-06-17 22:51:08",
+  "description": "Runs the silver data-quality pipeline, then the gold governance pipeline. Part of the data governance capstone (bronze → silver → gold)",
+  "email_notifications": {
+    "on_failure": [
+      "gosmanii1997@gmail.com"
+    ],
+    "no_alert_for_skipped_runs": false
+  },
+  "webhook_notifications": {},
+  "notification_settings": {
+    "no_alert_for_skipped_runs": false,
+    "no_alert_for_canceled_runs": false
+  },
+  "timeout_seconds": 0,
+  "schedule": {
+    "quartz_cron_expression": "41 0 6 * * ?",
+    "timezone_id": "Europe/Warsaw",
+    "pause_status": "UNPAUSED"
+  },
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "Silver_Pipeline",
+      "run_if": "ALL_SUCCESS",
+      "pipeline_task": {
+        "pipeline_id": "17466c17-b9a1-4bc9-8f49-b64365c40d0a"
+      },
+      "max_retries": 2,
+      "min_retry_interval_millis": 120000,
+      "retry_on_timeout": false,
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {},
+      "disabled": false
+    },
+    {
+      "task_key": "Gold_Pipeline",
+      "depends_on": [
+        {
+          "task_key": "Silver_Pipeline"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "pipeline_task": {
+        "pipeline_id": "ab3795e1-1a7a-4dc7-b2b5-4069343aa1bd"
+      },
+      "max_retries": 2,
+      "min_retry_interval_millis": 120000,
+      "retry_on_timeout": false,
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {},
+      "disabled": false
+    }
+  ],
+  "queue": {
+    "enabled": true
+  },
+  "performance_target": "PERFORMANCE_OPTIMIZED"
+}

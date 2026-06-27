@@ -1,0 +1,290 @@
+import dlt
+from pyspark.sql import functions as F
+
+
+SILVER_METADATA = "workspace.silver.silver_metadata"
+
+# Create a Gold table that contains only compliant metadata records.
+# These records passed the validation and compliance checks in the Silver layer.
+@dlt.table(
+    name="gold_compliant_metadata",
+    comment="Compliant metadata records ready for reporting"
+)
+def gold_compliant_metadata():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .filter(F.col("is_compliant") == 1)
+    )
+
+
+# Create a Gold table that contains only non-compliant metadata records.
+# These records failed one or more validation checks and require review.
+@dlt.table(
+    name="gold_non_compliant_metadata",
+    comment="Non-compliant metadata records requiring review"
+)
+def gold_non_compliant_metadata():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .filter(F.col("is_compliant") == 0)
+    )
+
+
+# Create a Gold table that identifies potentially sensitive metadata fields.
+# The detection is based on common sensitive column name patterns.
+@dlt.table(
+    name="gold_sensitive_metadata",
+    comment="Metadata records containing sensitive data indicators"
+)
+def gold_sensitive_metadata():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .filter(
+            (F.lower(F.col("column_name")).contains("email")) |
+            (F.lower(F.col("column_name")).contains("phone")) |
+            (F.lower(F.col("column_name")).contains("ssn"))
+        )
+    )
+
+
+# Create a Gold table that classifies metadata records
+# into governance categories based on sensitivity indicators.
+@dlt.table(
+    name="gold_classified_metadata",
+    comment="Metadata records classified by sensitivity and governance level"
+)
+def gold_classified_metadata():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .withColumn(
+            "data_classification",
+            F.when(
+                F.lower(F.col("column_name")).contains("email") |
+                F.lower(F.col("column_name")).contains("phone") |
+                F.lower(F.col("column_name")).contains("ssn") |
+                F.lower(F.col("column_name")).contains("account") |
+                F.lower(F.col("column_name")).contains("birth"),
+                "Sensitive"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("id"),
+                "Internal"
+            )
+            .otherwise("Public")
+        )
+    )
+
+# Create a Gold table that contains metadata records
+# identified as Personally Identifiable Information (PII).
+# These records are used for governance reporting,
+# dashboard metrics, and AI governance insights.
+
+@dlt.table(
+    name="gold_pii_metadata",
+    comment="Gold table containing metadata records identified as PII"
+)
+def gold_pii_metadata():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .filter(F.lower(F.col("pii_flag").cast("string")) == "true")
+    )
+
+# Create a Gold table that provides business definitions
+# and descriptions for metadata fields.
+# This table supports data governance, metadata search,
+# reporting, and AI-driven insights by establishing
+# a common business vocabulary across the platform.
+
+@dlt.table(
+    name="gold_business_glossary",
+    comment="Gold table containing business definitions and descriptions for metadata fields"
+)
+def gold_business_glossary():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .withColumn(
+            "business_definition",
+            F.when(
+                F.lower(F.col("column_name")).contains("email"),
+                "Customer email address"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("phone"),
+                "Customer phone number"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("ssn"),
+                "Social Security Number"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("account"),
+                "Account identifier"
+            )
+            .otherwise("General business attribute")
+        )
+    )
+
+# Create a Gold table that assigns data ownership information
+# to metadata records.
+# This table supports governance accountability by identifying
+# the responsible business owner for each metadata asset.
+
+@dlt.table(
+    name="gold_data_ownership_registry",
+    comment="Gold table containing ownership information for metadata records"
+)
+def gold_data_ownership_registry():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .withColumn(
+            "data_owner",
+            F.when(
+                F.lower(F.col("table_name")).contains("customer"),
+                "Customer Data Owner"
+            )
+            .when(
+                F.lower(F.col("table_name")).contains("payment"),
+                "Finance Data Owner"
+            )
+            .when(
+                F.lower(F.col("table_name")).contains("order"),
+                "Sales Data Owner"
+            )
+            .otherwise("General Data Owner")
+        )
+    )
+
+# Create a Gold table that enriches metadata records
+# with additional governance information.
+# This table improves reporting, metadata search,
+# and AI-driven insights by adding useful attributes.
+
+@dlt.table(
+    name="gold_enriched_metadata",
+    comment="Gold table containing enriched metadata records for governance reporting"
+)
+def gold_enriched_metadata():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .withColumn(
+            "governance_status",
+            F.when(F.col("is_compliant") == 1, "Approved")
+            .otherwise("Needs Review")
+        )
+        .withColumn(
+            "metadata_priority",
+            F.when(
+                F.lower(F.col("pii_flag").cast("string")) == "true",
+                "High"
+            )
+            .when(
+                F.col("is_compliant") == 0,
+                "Medium"
+            )
+            .otherwise("Low")
+        )
+    )
+# Create a Gold table that assigns tags to metadata records.
+# These tags improve metadata discovery, governance,
+# reporting, and AI-driven insights.
+
+@dlt.table(
+    name="gold_metadata_tags",
+    comment="Gold table containing metadata tags for governance and search"
+)
+def gold_metadata_tags():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .withColumn(
+            "metadata_tag",
+            F.when(
+                F.lower(F.col("column_name")).contains("email"),
+                "PII"
+            )
+            .when(
+                F.lower(F.col("column_name")).contains("phone"),
+                "Sensitive"
+            )
+            .when(
+                F.col("is_compliant") == 0,
+                "Needs Review"
+            )
+            .otherwise("Standard")
+        )
+    )
+
+# Create a Gold table that calculates quality scores
+# for metadata records.
+# This table provides quality metrics for reporting,
+# dashboards, and AI governance insights.
+
+@dlt.table(
+    name="gold_quality_metrics",
+    comment="Gold table containing quality scores for metadata records"
+)
+def gold_quality_metrics():
+    return (
+        spark.read.table(SILVER_METADATA)
+        .withColumn(
+            "quality_score",
+            (
+                F.col("flag_table_desc") +
+                F.col("flag_column_desc") +
+                F.col("flag_term_name") +
+                F.col("flag_data_steward") +
+                F.col("flag_security_classification") +
+                F.col("flag_source_system_tag") +
+                F.col("flag_pii_flag") +
+                F.col("flag_dq_pass")
+            ) * 100 / 8
+        )
+    )
+
+# Read sample business tables from the Silver layer and expose them in Gold.
+# These curated Gold tables support dashboards, reporting, and AI governance insights.
+
+SILVER_CUSTOMERS = "workspace.silver.silver_customers"
+SILVER_ORDERS = "workspace.silver.silver_orders"
+SILVER_PRODUCTS = "workspace.silver.silver_products"
+SILVER_PAYMENTS = "workspace.silver.silver_payments"
+SILVER_BILLING_TRANSACTIONS = "workspace.silver.silver_billing_transactions"
+
+
+@dlt.table(
+    name="gold_customers",
+    comment="Curated customer data from Silver for Gold reporting"
+)
+def gold_customers():
+    return spark.read.table(SILVER_CUSTOMERS)
+
+
+@dlt.table(
+    name="gold_orders",
+    comment="Curated order data from Silver for Gold reporting"
+)
+def gold_orders():
+    return spark.read.table(SILVER_ORDERS)
+
+
+@dlt.table(
+    name="gold_products",
+    comment="Curated product data from Silver for Gold reporting"
+)
+def gold_products():
+    return spark.read.table(SILVER_PRODUCTS)
+
+
+@dlt.table(
+    name="gold_payments",
+    comment="Curated payment data from Silver for Gold reporting"
+)
+def gold_payments():
+    return spark.read.table(SILVER_PAYMENTS)
+
+
+@dlt.table(
+    name="gold_billing_transactions",
+    comment="Curated billing transaction data from Silver for Gold reporting"
+)
+def gold_billing_transactions():
+    return spark.read.table(SILVER_BILLING_TRANSACTIONS)
